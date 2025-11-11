@@ -13,17 +13,24 @@ app.use(bodyParser.json());
 const authRoutes = require('./routes/auth');
 const categoriesRoutes = require('./routes/categories');
 const playersRoutes = require('./routes/players');
+const teamsRoutes = require('./routes/teams'); // ✅ NUEVA RUTA
 
 app.use('/auth', authRoutes);
 app.use('/categories', categoriesRoutes);
 app.use('/players', playersRoutes);
+app.use('/teams', teamsRoutes); // ✅ REGISTRAR NUEVA RUTA
 
 // Ruta principal
 app.get('/', (req, res) => {
   res.json({ 
     message: 'API Players - Online',
     status: 'OK',
-    environment: process.env.NODE_ENV || 'production'
+    endpoints: {
+      auth: '/auth',
+      categories: '/categories',
+      players: '/players',
+      teams: '/teams' // ✅ NUEVO ENDPOINT
+    }
   });
 });
 
