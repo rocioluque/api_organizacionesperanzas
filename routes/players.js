@@ -4,7 +4,7 @@ const { getPool, sql } = require('../config/database');
 const router = express.Router();
 
 // GET /players/{categoryId} - Ahora incluye teamId
-router.get('/:categoryId', async (req, res) => {
+router.get('/by-category/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
     
@@ -23,7 +23,6 @@ router.get('/:categoryId', async (req, res) => {
           p.photo_url as photoUrl, 
           p.status, 
           p.team_id as teamId,
-          -- Manejar team_id inválidos mostrando el string como teamName
           CASE 
             WHEN t.name IS NOT NULL THEN t.name
             WHEN p.team_id IS NOT NULL AND p.team_id != '' THEN p.team_id
@@ -44,14 +43,6 @@ router.get('/:categoryId', async (req, res) => {
 
     console.log(`✅ Enviando ${result.recordset.length} jugadores para categoría ${categoryId}`);
     
-    // Log detallado
-    if (result.recordset.length > 0) {
-      console.log('📋 Jugadores a enviar:');
-      result.recordset.forEach(player => {
-        console.log(`   - ${player.firstName} ${player.lastName} | Equipo: ${player.teamName} (${player.teamId})`);
-      });
-    }
-    
     res.json(result.recordset);
   } catch (error) {
     console.error('Error fetching players:', error);
@@ -59,9 +50,8 @@ router.get('/:categoryId', async (req, res) => {
   }
 });
 
-// GET /player/{playerId} - Ahora incluye teamId
-// ELIMINAR la palabra '/player' de la definición
-router.get('/:playerId', async (req, res) => { 
+// ✅ MANTENIDO: Ruta para obtener un jugador específico (sin cambios)
+router.get('/:playerId', async (req, res) => {
   try {
     const { playerId } = req.params;
     
