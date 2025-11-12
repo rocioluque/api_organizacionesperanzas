@@ -206,7 +206,8 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET /teams/by-category/{categoryId} - Equipos por categoría
+// ✅ CORREGIDO: GET /teams/by-category/{categoryId} - Equipos por categoría
+// Ahora devuelve directamente el array de equipos
 router.get('/by-category/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
@@ -237,21 +238,19 @@ router.get('/by-category/:categoryId', async (req, res) => {
         ORDER BY t.name
       `);
 
+    // ✅ CORRECTO: Devolver directamente el array de equipos
     const teams = teamsResult.recordset.map(row => ({
       id: row.id,
       name: row.name
     }));
 
-    res.json({
-      category: {
-        id: categoryResult.recordset[0].id,
-        name: categoryResult.recordset[0].name
-      },
-      teams: teams
-    });
+    console.log(`✅ Enviando ${teams.length} equipos para categoría ${categoryId}`);
+    
+    // ✅ CORRECTO: Enviar directamente el array, no un objeto que lo envuelva
+    res.json(teams);
     
   } catch (error) {
-    console.error('Error en GET /teams/by-category:', error.message);
+    console.error('❌ Error en GET /teams/by-category:', error.message);
     res.status(500).json({ 
       error: 'Error interno del servidor',
       message: error.message 
