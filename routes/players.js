@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getPool, sql } = require('../config/database');
 const router = express.Router();
 
-// GET /players/{categoryId} - Ahora incluye teamId
+// GET /players/{categoryId}
 router.get('/by-category/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
@@ -41,7 +41,7 @@ router.get('/by-category/:categoryId', async (req, res) => {
           p.first_name
       `);
 
-    console.log(`✅ Enviando ${result.recordset.length} jugadores para categoría ${categoryId}`);
+    console.log(`Enviando ${result.recordset.length} jugadores para categoría ${categoryId}`);
     
     res.json(result.recordset);
   } catch (error) {
@@ -50,7 +50,7 @@ router.get('/by-category/:categoryId', async (req, res) => {
   }
 });
 
-// ✅ MANTENIDO: Ruta para obtener un jugador específico (sin cambios)
+//  Ruta para obtener un jugador específico (sin cambios)
 router.get('/:playerId', async (req, res) => {
   try {
     const { playerId } = req.params;
@@ -79,13 +79,13 @@ router.get('/:playerId', async (req, res) => {
       `);
 
     if (result.recordset.length === 0) {
-      console.log(`❌ Jugador ${playerId} no encontrado`);
+      console.log(`Jugador ${playerId} no encontrado`);
       return res.status(404).json({ error: 'Player not found' });
     }
 
     const player = result.recordset[0];
     
-    console.log(`✅ Información del jugador encontrada:`);
+    console.log(`Información del jugador encontrada:`);
     console.log(`   - Nombre: ${player.firstName} ${player.lastName}`);
     console.log(`   - Fecha nacimiento: ${player.birthDate || 'No registrada'}`);
     console.log(`   - Foto: ${player.photoUrl || 'No tiene'}`);
@@ -96,7 +96,7 @@ router.get('/:playerId', async (req, res) => {
     res.json(player);
     
   } catch (error) {
-    console.error('❌ Error obteniendo jugador:', error.message);
+    console.error('Error obteniendo jugador:', error.message);
     res.status(500).json({ 
       error: 'Error interno del servidor',
       message: error.message 
@@ -104,7 +104,7 @@ router.get('/:playerId', async (req, res) => {
   }
 });
 
-// POST /players - Ahora acepta teamId
+// POST /players 
 router.post('/', async (req, res) => {
   try {
     const { categoryId, firstName, lastName, teamId, birthDate, photoUrl } = req.body;
@@ -118,7 +118,7 @@ router.post('/', async (req, res) => {
       categoryId,
       firstName,
       lastName,
-      teamId: teamId || null, // ✅ NUEVO CAMPO
+      teamId: teamId || null,
       birthDate: birthDate || null,
       photoUrl: photoUrl || null,
       status: 'PENDING'
@@ -130,7 +130,7 @@ router.post('/', async (req, res) => {
       .input('category_id', sql.NVarChar, newPlayer.categoryId)
       .input('first_name', sql.NVarChar, newPlayer.firstName)
       .input('last_name', sql.NVarChar, newPlayer.lastName)
-      .input('team_id', sql.NVarChar, newPlayer.teamId) // ✅ NUEVO CAMPO
+      .input('team_id', sql.NVarChar, newPlayer.teamId) 
       .input('birth_date', sql.NVarChar, newPlayer.birthDate)
       .input('photo_url', sql.NVarChar, newPlayer.photoUrl)
       .input('status', sql.NVarChar, newPlayer.status)
@@ -139,7 +139,7 @@ router.post('/', async (req, res) => {
         VALUES (@id, @category_id, @first_name, @last_name, @team_id, @birth_date, @photo_url, @status)
       `);
 
-    console.log(`✅ Jugador creado con teamId: ${newPlayer.teamId}`);
+    console.log(`Jugador creado con teamId: ${newPlayer.teamId}`);
     res.status(201).json(newPlayer);
   } catch (error) {
     console.error('Error creating player:', error);
@@ -147,11 +147,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /players/{playerId} - Ahora actualiza teamId
+// PUT /players/{playerId} 
 router.put('/:playerId', async (req, res) => {
   try {
     const { playerId } = req.params;
     const { categoryId, firstName, lastName, teamId, birthDate, photoUrl, status } = req.body;
+
+    console.log(`🔄 Actualizando jugador ${playerId}:`, { 
+      firstName, lastName, photoUrl: photoUrl ? 'URL proporcionada' : 'Sin URL' 
+    });
 
     const pool = await getPool();
     
@@ -164,15 +168,15 @@ router.put('/:playerId', async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // Actualizar jugador incluyendo teamId
+    // Actualizar jugador
     await pool.request()
       .input('id', sql.NVarChar, playerId)
       .input('category_id', sql.NVarChar, categoryId)
       .input('first_name', sql.NVarChar, firstName)
       .input('last_name', sql.NVarChar, lastName)
-      .input('team_id', sql.NVarChar, teamId) // ✅ NUEVO CAMPO
+      .input('team_id', sql.NVarChar, teamId)
       .input('birth_date', sql.NVarChar, birthDate)
-      .input('photo_url', sql.NVarChar, photoUrl)
+      .input('photo_url', sql.NVarChar, photoUrl) 
       .input('status', sql.NVarChar, status)
       .query(`
         UPDATE players 
@@ -191,7 +195,9 @@ router.put('/:playerId', async (req, res) => {
         WHERE id = @playerId
       `);
 
-    console.log(`✅ Jugador actualizado con teamId: ${teamId}`);
+    console.log(`Jugador actualizado: ${firstName} ${lastName}`);
+    console.log(`   - Foto: ${result.recordset[0].photoUrl || 'Sin foto'}`);
+    
     res.json(result.recordset[0]);
   } catch (error) {
     console.error('Error updating player:', error);
@@ -199,7 +205,7 @@ router.put('/:playerId', async (req, res) => {
   }
 });
 
-// PUT /players/{playerId}/status - Sin cambios
+// PUT /players/{playerId}/status 
 router.put('/:playerId/status', async (req, res) => {
   try {
     const { playerId } = req.params;
