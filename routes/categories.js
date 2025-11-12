@@ -1,73 +1,127 @@
 const express = require('express');
+const { v4: uuidv4 } = require('uuid');
 const { getPool, sql } = require('../config/database');
 const router = express.Router();
 
-// ✅ ENDPOINT: GET /categories - Todas las categorías
+// GET /categories - Todas las categorías
 router.get('/', async (req, res) => {
   try {
-    console.log('📋 Solicitando todas las categorías...');
-    
     const pool = await getPool();
     const result = await pool.request()
       .query('SELECT id, name FROM categories ORDER BY name');
 
-    // Formatear respuesta
-    const categories = result.recordset.map(cat => ({
-      id: cat.id,
-      name: cat.name
-    }));
-
-    console.log(`✅ Enviando ${categories.length} categorías`);
-    
-    res.json(categories);
-    
+    res.json(result.recordset);
   } catch (error) {
-    console.error('❌ Error en GET /categories:', error.message);
-    
-    // Manejar diferentes tipos de errores
-    if (error.code === 'ETIMEOUT') {
-      return res.status(503).json({ 
-        error: 'Database timeout',
-        message: 'El servidor de base de datos no responde'
-      });
-    }
-    
-    if (error.code === 'ELOGIN') {
-      return res.status(500).json({ 
-        error: 'Database connection failed',
-        message: 'Error de autenticación con la base de datos'
-      });
-    }
-    
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: 'No se pudieron obtener las categorías'
-    });
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ ENDPOINT EXISTENTE: GET /categories/:userId
-router.get('/:userId', async (req, res) => {
+// POST /categories - Crear nueva categoría
+router.post('/', async (req, res) => {
   try {
-    const { userId } = req.params;
-    console.log(`👤 Solicitando categorías para usuario: ${userId}`);
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'name is required' });
+    }
+
+    const newCategory = {
+      id: `cat_${uuidv4()}`,
+      name
+    };
+
+    const pool = await getPool();
+    await pool.request()
+      .input('id', sql.NVarChar, newCategory.id)
+      .input('name', sql.NVarChar, newCategory.name)
+      .query('INSERT INTO categories (id, name) VALUES (@id, @name)');
+
+    res.status(201).json(newCategory);
+    
+  } catch (error) {
+    if (error.number === 2627) {
+      return res.status(409).json({ error: 'Category name already exists' });
+    }
+    console.error('Error creating category:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /categories/{id} - Actualizar categoría
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'name is required' });
+    }
 
     const pool = await getPool();
     
-    // Verificar usuario
+    const result = await pool.request()
+      .input('id', sql.NVarChar, id)
+      .input('name', sql.NVarChar, name)
+      .query('UPDATE categories SET name = @name WHERE id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    res.json({ id, name });
+    
+  } catch (error) {
+    if (error.number === 2627) {
+      return res.status(409).json({ error: 'Category name already exists' });
+    }
+    console.error('Error updating category:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// DELETE /categories/{id} - Eliminar categoría
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const pool = await getPool();
+    
+    const result = await pool.request()
+      .input('id', sql.NVarChar, id)
+      .query('DELETE FROM categories WHERE id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    res.status(204).send();
+    
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /categories/{userId} - Categorías del usuario (existente)
+router.get('/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const pool = await getPool();
+    
     const userResult = await pool.request()
       .input('userId', sql.NVarChar, userId)
-      .query('SELECT id, role FROM users WHERE id = @userId');
+      .query('SELECT role FROM users WHERE id = @userId');
 
     if (userResult.recordset.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     if (userResult.recordset[0].role !== 'DELEGATE') {
-      return res.status(403).json({ error: 'El usuario no es un delegado' });
+      return res.status(403).json({ error: 'User is not a delegate' });
     }
 
-    // Obtener categorías asignadas
     const categoriesResult = await pool.request()
       .input('userId', sql.NVarChar, userId)
       .query(`
@@ -85,16 +139,10 @@ router.get('/:userId', async (req, res) => {
       }
     }));
 
-    console.log(`✅ Enviando ${assignedCategories.length} categorías para usuario ${userId}`);
-    
     res.json(assignedCategories);
-    
   } catch (error) {
-    console.error('❌ Error en GET /categories/:userId:', error.message);
-    res.status(500).json({ 
-      error: 'Error interno del servidor',
-      message: error.message 
-    });
+    console.error('Error fetching user categories:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

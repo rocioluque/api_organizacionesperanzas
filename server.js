@@ -11,14 +11,16 @@ app.use(bodyParser.json());
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
 const categoriesRoutes = require('./routes/categories');
 const playersRoutes = require('./routes/players');
-const teamsRoutes = require('./routes/teams'); // ✅ NUEVA RUTA
+const teamsRoutes = require('./routes/teams');
 
 app.use('/auth', authRoutes);
+app.use('/users', usersRoutes); 
 app.use('/categories', categoriesRoutes);
 app.use('/players', playersRoutes);
-app.use('/teams', teamsRoutes); // ✅ REGISTRAR NUEVA RUTA
+app.use('/teams', teamsRoutes);
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -27,9 +29,10 @@ app.get('/', (req, res) => {
     status: 'OK',
     endpoints: {
       auth: '/auth',
+      users: '/users', 
       categories: '/categories',
       players: '/players',
-      teams: '/teams' // ✅ NUEVO ENDPOINT
+      teams: '/teams'
     }
   });
 });
