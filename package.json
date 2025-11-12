@@ -6,8 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "update-db": "node scripts/updateDatabase.js",
-    "build": "echo 'No build step required'"
+    "debug-teams": "node scripts/debugTeams.js",
+    "fix-relations": "node scripts/fixTeamRelations.js",
+    "diagnose": "npm run debug-teams && npm run fix-relations"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
