@@ -8,17 +8,38 @@ router.get('/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
     
+    console.log(`👥 Solicitando jugadores para categoría: ${categoryId}`);
+    
     const pool = await getPool();
     const result = await pool.request()
       .input('categoryId', sql.NVarChar, categoryId)
       .query(`
-        SELECT id, category_id as categoryId, first_name as firstName, last_name as lastName, 
-               birth_date as birthDate, photo_url as photoUrl, status, team_id as teamId
-        FROM players 
-        WHERE category_id = @categoryId
+        SELECT 
+          p.id, 
+          p.category_id as categoryId, 
+          p.first_name as firstName, 
+          p.last_name as lastName, 
+          p.birth_date as birthDate, 
+          p.photo_url as photoUrl, 
+          p.status, 
+          p.team_id as teamId,
+          t.name as teamName
+        FROM players p
+        LEFT JOIN teams t ON p.team_id = t.id
+        WHERE p.category_id = @categoryId
+        ORDER BY t.name, p.last_name, p.first_name
       `);
 
-    console.log(`✅ Jugadores con teamId enviados para categoría ${categoryId}`);
+    console.log(`✅ Enviando ${result.recordset.length} jugadores para categoría ${categoryId}`);
+    
+    // Log detallado de lo que se está enviando
+    if (result.recordset.length > 0) {
+      console.log('📋 Jugadores a enviar:');
+      result.recordset.forEach(player => {
+        console.log(`   - ${player.firstName} ${player.lastName} | Equipo: ${player.teamName || 'Sin equipo'} (${player.teamId})`);
+      });
+    }
+    
     res.json(result.recordset);
   } catch (error) {
     console.error('Error fetching players:', error);
