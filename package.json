@@ -7,10 +7,12 @@
     "dev": "nodemon server.js",
     "debug-teams": "node scripts/debugTeams.js",
     "debug-players": "node scripts/debugPlayersTeams.js",
+    "debug-player-details": "node scripts/debugPlayerDetails.js",
     "fix-relations": "node scripts/fixTeamRelations.js",
     "fix-players-teams": "node scripts/fixPlayersTeams.js",
-    "full-fix": "npm run fix-relations && npm run fix-players-teams",
-    "diagnose-all": "npm run debug-teams && npm run debug-players"
+    "fix-team-ids": "node scripts/fixTeamIds.js",
+    "full-fix": "npm run fix-relations && npm run fix-players-teams && npm run fix-team-ids",
+    "diagnose-all": "npm run debug-teams && npm run debug-players && npm run debug-player-details"
   },
   "dependencies": {
     "express": "^4.18.2",

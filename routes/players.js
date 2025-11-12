@@ -23,20 +23,32 @@ router.get('/:categoryId', async (req, res) => {
           p.photo_url as photoUrl, 
           p.status, 
           p.team_id as teamId,
-          t.name as teamName
+          -- Manejar team_id inválidos mostrando el string como teamName
+          CASE 
+            WHEN t.name IS NOT NULL THEN t.name
+            WHEN p.team_id IS NOT NULL AND p.team_id != '' THEN p.team_id
+            ELSE 'Sin equipo'
+          END as teamName
         FROM players p
         LEFT JOIN teams t ON p.team_id = t.id
         WHERE p.category_id = @categoryId
-        ORDER BY t.name, p.last_name, p.first_name
+        ORDER BY 
+          CASE 
+            WHEN t.name IS NOT NULL THEN t.name
+            WHEN p.team_id IS NOT NULL AND p.team_id != '' THEN p.team_id
+            ELSE 'Sin equipo'
+          END,
+          p.last_name, 
+          p.first_name
       `);
 
     console.log(`✅ Enviando ${result.recordset.length} jugadores para categoría ${categoryId}`);
     
-    // Log detallado de lo que se está enviando
+    // Log detallado
     if (result.recordset.length > 0) {
       console.log('📋 Jugadores a enviar:');
       result.recordset.forEach(player => {
-        console.log(`   - ${player.firstName} ${player.lastName} | Equipo: ${player.teamName || 'Sin equipo'} (${player.teamId})`);
+        console.log(`   - ${player.firstName} ${player.lastName} | Equipo: ${player.teamName} (${player.teamId})`);
       });
     }
     
@@ -48,28 +60,57 @@ router.get('/:categoryId', async (req, res) => {
 });
 
 // GET /player/{playerId} - Ahora incluye teamId
-router.get('/player/:playerId', async (req, res) => {
+// ELIMINAR la palabra '/player' de la definición
+router.get('/:playerId', async (req, res) => { 
   try {
     const { playerId } = req.params;
     
+    console.log(`👤 Solicitando información del jugador: ${playerId}`);
+
     const pool = await getPool();
     const result = await pool.request()
       .input('playerId', sql.NVarChar, playerId)
       .query(`
-        SELECT id, category_id as categoryId, first_name as firstName, last_name as lastName, 
-               birth_date as birthDate, photo_url as photoUrl, status, team_id as teamId
-        FROM players 
-        WHERE id = @playerId
+        SELECT 
+          p.id, 
+          p.category_id as categoryId, 
+          p.first_name as firstName, 
+          p.last_name as lastName, 
+          p.birth_date as birthDate, 
+          p.photo_url as photoUrl, 
+          p.status, 
+          p.team_id as teamId,
+          t.name as teamName,
+          c.name as categoryName
+        FROM players p
+        LEFT JOIN teams t ON p.team_id = t.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.id = @playerId
       `);
 
     if (result.recordset.length === 0) {
+      console.log(`❌ Jugador ${playerId} no encontrado`);
       return res.status(404).json({ error: 'Player not found' });
     }
+
+    const player = result.recordset[0];
     
-    res.json(result.recordset[0]);
+    console.log(`✅ Información del jugador encontrada:`);
+    console.log(`   - Nombre: ${player.firstName} ${player.lastName}`);
+    console.log(`   - Fecha nacimiento: ${player.birthDate || 'No registrada'}`);
+    console.log(`   - Foto: ${player.photoUrl || 'No tiene'}`);
+    console.log(`   - Equipo: ${player.teamName || 'Sin equipo'} (${player.teamId})`);
+    console.log(`   - Categoría: ${player.categoryName} (${player.categoryId})`);
+    console.log(`   - Estado: ${player.status}`);
+    
+    res.json(player);
+    
   } catch (error) {
-    console.error('Error fetching player:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Error obteniendo jugador:', error.message);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error.message 
+    });
   }
 });
 
