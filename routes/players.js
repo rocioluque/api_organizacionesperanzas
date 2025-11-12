@@ -18,8 +18,9 @@ router.get('/by-category/:categoryId', async (req, res) => {
           p.first_name as firstName, 
           p.last_name as lastName, 
           p.birth_date as birthDate, 
+          p.dni, -- ADDED
           p.photo_url as photoUrl, 
-          p.document_photo_url as documentPhotoUrl, -- ADDED
+          p.document_photo_url as documentPhotoUrl,
           p.status, 
           p.team_id as teamId,
           CASE 
@@ -53,9 +54,10 @@ router.get('/:playerId', async (req, res) => {
           p.category_id as categoryId, 
           p.first_name as firstName, 
           p.last_name as lastName, 
-          p.birth_date as birthDate, 
+          p.birth_date as birthDate,
+          p.dni, -- ADDED
           p.photo_url as photoUrl,
-          p.document_photo_url as documentPhotoUrl, -- ADDED
+          p.document_photo_url as documentPhotoUrl,
           p.status, 
           p.team_id as teamId,
           t.name as teamName,
@@ -81,7 +83,7 @@ router.get('/:playerId', async (req, res) => {
 // POST /players 
 router.post('/', async (req, res) => {
   try {
-    const { categoryId, firstName, lastName, teamId, birthDate, photoUrl, documentPhotoUrl } = req.body;
+    const { categoryId, firstName, lastName, teamId, birthDate, dni, photoUrl, documentPhotoUrl } = req.body;
 
     if (!categoryId || !firstName || !lastName) {
       return res.status(400).json({ error: 'categoryId, firstName, and lastName are required' });
@@ -94,8 +96,9 @@ router.post('/', async (req, res) => {
       lastName,
       teamId: teamId || null,
       birthDate: birthDate || null,
+      dni: dni || null, // ADDED
       photoUrl: photoUrl || null,
-      documentPhotoUrl: documentPhotoUrl || null, // ADDED
+      documentPhotoUrl: documentPhotoUrl || null,
       status: 'PENDING'
     };
 
@@ -107,12 +110,13 @@ router.post('/', async (req, res) => {
       .input('last_name', sql.NVarChar, newPlayer.lastName)
       .input('team_id', sql.NVarChar, newPlayer.teamId) 
       .input('birth_date', sql.NVarChar, newPlayer.birthDate)
+      .input('dni', sql.NVarChar, newPlayer.dni) // ADDED
       .input('photo_url', sql.NVarChar, newPlayer.photoUrl)
-      .input('document_photo_url', sql.NVarChar, newPlayer.documentPhotoUrl) // ADDED
+      .input('document_photo_url', sql.NVarChar, newPlayer.documentPhotoUrl)
       .input('status', sql.NVarChar, newPlayer.status)
       .query(`
-        INSERT INTO players (id, category_id, first_name, last_name, team_id, birth_date, photo_url, document_photo_url, status)
-        VALUES (@id, @category_id, @first_name, @last_name, @team_id, @birth_date, @photo_url, @document_photo_url, @status)
+        INSERT INTO players (id, category_id, first_name, last_name, team_id, birth_date, dni, photo_url, document_photo_url, status)
+        VALUES (@id, @category_id, @first_name, @last_name, @team_id, @birth_date, @dni, @photo_url, @document_photo_url, @status)
       `);
 
     console.log(`✅ Jugador creado: ${newPlayer.firstName} ${newPlayer.lastName}`);
@@ -128,7 +132,6 @@ router.put('/:playerId', async (req, res) => {
   try {
     const { playerId } = req.params;
     console.log(`🔄 Recibida petición para actualizar jugador ${playerId}. Body:`, req.body);
-
     const pool = await getPool();
     const fieldsToUpdate = [];
     const request = pool.request().input('id', sql.NVarChar, playerId);
@@ -154,7 +157,7 @@ router.put('/:playerId', async (req, res) => {
       .input('playerId', sql.NVarChar, playerId)
       .query(`
         SELECT id, category_id as categoryId, first_name as firstName, last_name as lastName, 
-               birth_date as birthDate, photo_url as photoUrl, document_photo_url as documentPhotoUrl, status, team_id as teamId
+               birth_date as birthDate, dni, photo_url as photoUrl, document_photo_url as documentPhotoUrl, status, team_id as teamId
         FROM players WHERE id = @playerId
       `);
       
