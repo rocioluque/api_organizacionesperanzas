@@ -3,20 +3,14 @@ const { v4: uuidv4 } = require('uuid');
 const { getPool, sql } = require('../config/database');
 const router = express.Router();
 
-// GET /teams - Todos los equipos con sus categorías Y conteo de jugadores
+// GET /teams - Todos los equipos con sus categorías
 router.get('/', async (req, res) => {
   try {
     const pool = await getPool();
     
     const teamsResult = await pool.request()
       .query(`
-        SELECT 
-          t.id, 
-          t.name,
-          -- Contar jugadores por equipo
-          (SELECT COUNT(*) FROM players p WHERE p.team_id = t.id) as playerCount,
-          c.id as categoryId, 
-          c.name as categoryName
+        SELECT t.id, t.name, c.id as categoryId, c.name as categoryName
         FROM teams t
         LEFT JOIN team_categories tc ON t.id = tc.team_id
         LEFT JOIN categories c ON tc.category_id = c.id
@@ -31,7 +25,6 @@ router.get('/', async (req, res) => {
         teamsMap.set(row.id, {
           id: row.id,
           name: row.name,
-          playerCount: row.playerCount, 
           categories: []
         });
       }
@@ -45,9 +38,6 @@ router.get('/', async (req, res) => {
     });
 
     const teams = Array.from(teamsMap.values());
-    
-    console.log(`✅ Enviando ${teams.length} equipos con conteo de jugadores`);
-    
     res.json(teams);
     
   } catch (error) {
